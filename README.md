@@ -12,8 +12,8 @@ Clone the repo from github by executing the command as follows and then go to te
 
 ```
 [~] git clone https://github.com/Eric6986/oci-oke-demonstration.git
-[~] cd terraform/
-[~] ls -lt
+[~] cd terraform_oke_bastion_private_access/
+[~/terraform_oke_bastion_private_access] ls -lt
 -rw-r--r--  1 erichsieh  staff   3398 Aug  2 01:40 containerengine.tf
 -rw-r--r--  1 erichsieh  staff   3142 Aug  2 01:36 variables.tf
 -rw-r--r--  1 erichsieh  staff  15253 Aug  2 01:31 network.tf
@@ -30,7 +30,7 @@ Clone the repo from github by executing the command as follows and then go to te
 Install OCI CLI tools from https://docs.oracle.com/en-us/iaas/Content/API/SDKDocs/cliinstall.htm
 
 ```
-[~] oci -version
+[~/terraform_oke_bastion_private_access] oci -version
 3.9.0
 ```
 
@@ -39,7 +39,7 @@ Install OCI CLI tools from https://docs.oracle.com/en-us/iaas/Content/API/SDKDoc
 Download your private PEM key from OCI console, past the content in $HOME/.oci/config.
 
 ```
-[~] vim $HOME/.oci/config
+[~/terraform_oke_bastion_private_access] vim $HOME/.oci/config
 [DEFAULT]
 user=ocid1.user.oc1..aaaaaaaa6ldciwat(..................)dtwwa2guxbwvq
 fingerprint=1a:5b:(..................):c7:87
@@ -55,15 +55,11 @@ To fix this please try executing the following command:
 oci setup repair-file-permissions --file $HOME/.oci/config
 ```
 
-
-
-
-
 ### STEP 4
 
 Prepare your ssh key for bastion service. The default pairing key put in $HOME/.ssh/id_rsa.pub.
 ```
-[~] ssh-keygen -t rsa -b 4096
+[~/terraform_oke_bastion_private_access] ssh-keygen -t rsa -b 4096
 Generating public/private rsa key pair.
 Enter file in which to save the key ($HOME/.ssh/id_rsa):
 Enter passphrase (empty for no passphrase):
@@ -80,7 +76,7 @@ The key's randomart image is:
 Download the latest terraform from https://www.terraform.io/downloads.html. The MacOS can use brew install Terraform also. Refer the installation step from https://formulae.brew.sh/formula/terraform. 
 
 ```
-[~] terraform -version
+[~/terraform_oke_bastion_private_access] terraform -version
 Terraform v1.2.6
 ```
 
@@ -89,7 +85,7 @@ Terraform v1.2.6
 Run *source tf_vars_setting.sh* to setup terraform environment variable. You also can use -h to review the parameter detail.
 
 ```
-[~] source tf_vars_setting.sh
+[~/terraform_oke_bastion_private_access] source tf_vars_setting.sh
 TF_VAR_user_ocid=ocid1.user.oc1..aaaaaaaa6ldciwat(..................)dtwwa2guxbwvq
 TF_VAR_fingerprint=1a:5b:(..................):c7:87
 TF_VAR_tenancy_ocid=ocid1.tenancy.oc1..aaaaaaaakatveh(..................)c6gwlw52nvtq
@@ -104,7 +100,7 @@ TF_VAR_bastion_ssh_public_key=$HOME/.ssh/id_rsa.pub
 Run *terraform init* to download the lastest neccesary providers:
 
 ```
-[~] terraform init -upgrade
+[~/terraform_oke_bastion_private_access] terraform init -upgrade
 Initializing the backend...
 
 Initializing provider plugins...
@@ -136,7 +132,7 @@ commands will detect it and remind you to do so if necessary.
 Run *terraform apply* to provision the content of this repo (type **yes** to confirm the the apply phase):
 
 ```
-[~] terraform apply
+[~/terraform_oke_bastion_private_access] terraform apply
 data.oci_identity_availability_domains.demo_availability_domains: Reading...
 data.oci_core_images.bastion_image: Reading...
 data.oci_core_services.oci_services: Reading...
@@ -186,7 +182,7 @@ Use the output command to testing your local connection with Bastion server, kub
 
 Create the managed SSH session from local to bastion server.
 ```
-[~] ssh -i <privateKey> -o ProxyCommand="ssh -i <privateKey> -W %h:%p -p 22 ocid1.bastionsession.oc1.phx.amaaaaaahxv2vbyab(.........)4h6q@host.bastion.us-phoenix-1.oci.oraclecloud.com" -p 22 opc@192.168.3.3
+[~/terraform_oke_bastion_private_access] ssh -i $HOME/.ssh/id_rsa -o ProxyCommand="ssh -i $HOME/.ssh/id_rsa -W %h:%p -p 22 ocid1.bastionsession.oc1.phx.amaaaaaahxv2vbyab(.........)4h6q@host.bastion.us-phoenix-1.oci.oraclecloud.com" -p 22 opc@192.168.3.3
 
 The authenticity of host '192.168.3.3 (<no hostip for proxy command>)' can't be established.
 ED25519 key fingerprint is SHA256:
@@ -199,18 +195,18 @@ Warning: Permanently added '192.168.3.3' (ED25519) to the list of known hosts.
 
 Setup the the local kubenetes configuration. The config file will add the private cluster setting in $HOME/.kube/config. Since we have to modify the kubernetes API endpoint from internal IP (192.168.0.3) to localhost (127.0.0.1), so we use sed command to update it.
 ```
-[~] oci ce cluster create-kubeconfig --cluster-id ocid1.cluster.oc1.phx.aaaaaaaahq5u4iaixzf(.........)yqya --file $HOME/.kube/config --region us-phoenix-1 --token-version 2.0.0 && sed -i '' 's/192.168.0.3/127.0.0.1/' $HOME/.kube/config
+[~/terraform_oke_bastion_private_access] oci ce cluster create-kubeconfig --cluster-id ocid1.cluster.oc1.phx.aaaaaaaahq5u4iaixzf(.........)yqya --file $HOME/.kube/config --region us-phoenix-1 --token-version 2.0.0 && sed -i '' 's/192.168.0.3/127.0.0.1/' $HOME/.kube/config
 
 Existing Kubeconfig file found at $HOME/.kube/config and new config merged into it
 ```
 
 Create a port forwarding tunnel on local device. Then you can use the *kubectl* or k8s client tools (ex: k9s) to access the cluster.
 ```
-[~] ssh -i <privateKey> -N -L <localPort>:192.168.0.3:6443 -p 22 ocid1.bastionsession.oc1.phx.amaaaaaahxv2vb(.........)jzona@host.bastion.us-phoenix-1.oci.oraclecloud.com &
+[~/terraform_oke_bastion_private_access] ssh -i $HOME/.ssh/id_rsa -N -L 6443:192.168.0.3:6443 -p 22 ocid1.bastionsession.oc1.phx.amaaaaaahxv2vb(.........)jzona@host.bastion.us-phoenix-1.oci.oraclecloud.com &
 
 [1] 20741
 
-[~] kubectl get ns
+[~/terraform_oke_bastion_private_access] kubectl get ns
 NAME              STATUS   AGE
 default           Active   24m
 kube-node-lease   Active   24m
@@ -222,7 +218,7 @@ kube-system       Active   24m
 After testing the environment you can remove the OCI OKE infra. You should just run *terraform destroy* (type **yes** for confirmation of the destroy phase):
 
 ```
-[~] terraform destroy
+[~/terraform_oke_bastion_private_access] terraform destroy
 
 data.oci_core_services.oci_services: Reading...
 data.oci_identity_availability_domains.demo_availability_domains: Reading...
